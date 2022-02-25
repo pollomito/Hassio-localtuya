@@ -177,7 +177,8 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         await self._device.set_dp(False, self._config[CONF_POWERGO_DP])
 
     async def async_return_to_base(self, **kwargs):
-        """Set the vacuum cleaner to return to the dock."""
+        """Set the vacuum cleaner to return to the dock. PIN, dps 3 = ricarica"""
+        await self._device.set_dp(True, 3)
         if self.has_config(CONF_RETURN_MODE):
             await self._device.set_dp(
                 self._config[CONF_RETURN_MODE], self._config[CONF_MODE_DP]
@@ -186,7 +187,9 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             _LOGGER.error("Missing command for return home in commands set.")
 
     async def async_stop(self, **kwargs):
-        """Turn the vacuum off stopping the cleaning."""
+        """Turn the vacuum off stopping the cleaning. PIN Come stop"""
+        await self._device.set_dp(False, self._config[CONF_POWERGO_DP])
+            
         if self.has_config(CONF_STOP_STATUS):
             await self._device.set_dp(
                 self._config[CONF_STOP_STATUS], self._config[CONF_MODE_DP]
