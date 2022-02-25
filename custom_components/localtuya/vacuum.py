@@ -43,6 +43,7 @@ from .const import (
     CONF_PAUSED_STATE,
     CONF_RETURN_MODE,
     CONF_STOP_STATUS,
+    CONF_RETURN_DP,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -76,6 +77,7 @@ def flow_schema(dps):
         vol.Optional(CONF_BATTERY_DP): vol.In(dps),
         vol.Optional(CONF_MODE_DP): vol.In(dps),
         vol.Optional(CONF_MODES, default=DEFAULT_MODES): str,
+        vol.Optional(CONF_RETURN_DP): vol.In(dps),
         vol.Optional(CONF_RETURN_MODE, default=DEFAULT_RETURN_MODE): str,
         vol.Optional(CONF_FAN_SPEED_DP): vol.In(dps),
         vol.Optional(CONF_FAN_SPEEDS, default=DEFAULT_FAN_SPEEDS): str,
@@ -134,6 +136,8 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
         if self.has_config(CONF_RETURN_MODE):
             supported_features = supported_features | SUPPORT_RETURN_HOME
+        elif self.has_config(CONF_RETURN_DP):
+            supported_features = supported_features | SUPPORT_RETURN_HOME
         if self.has_config(CONF_FAN_SPEED_DP):
             supported_features = supported_features | SUPPORT_FAN_SPEED
         if self.has_config(CONF_BATTERY_DP):
@@ -178,8 +182,9 @@ class LocaltuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
     async def async_return_to_base(self, **kwargs):
         """Set the vacuum cleaner to return to the dock. PIN, dps 3 = ricarica"""
-        await self._device.set_dp(True, 3)
-        if self.has_config(CONF_RETURN_MODE):
+        if self.has_config(CONF_RETURN_DP):
+            await self._device.set_dp(True, self._config[CONF_RETURN_DP])  
+        elif self.has_config(CONF_RETURN_MODE):
             await self._device.set_dp(
                 self._config[CONF_RETURN_MODE], self._config[CONF_MODE_DP]
             )
