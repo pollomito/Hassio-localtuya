@@ -81,6 +81,7 @@ CONF_FAULT_DP = "fault_dp"
 CONF_PAUSED_STATE = "paused_state"
 CONF_RETURN_MODE = "return_mode"
 CONF_STOP_STATUS = "stop_status"
+CONF_RETURN_DP = "return_dp"
 
 DATA_DISCOVERY = "discovery"
 
