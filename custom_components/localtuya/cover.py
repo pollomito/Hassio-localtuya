@@ -196,17 +196,25 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
             self._state = self.dps(CONF_CURRENT_POSITION_DP)
         else:
             self._state = self.dps(self._dp_id)
-        if self._state.isupper():
-            self._open_cmd = self._open_cmd.upper()
-            self._close_cmd = self._close_cmd.upper()
-            self._stop_cmd = self._stop_cmd.upper()
+            if self._state.isupper():
+                self._open_cmd = self._open_cmd.upper()
+                self._close_cmd = self._close_cmd.upper()
+                self._stop_cmd = self._stop_cmd.upper()
 
         if self.has_config(CONF_CURRENT_POSITION_DP):
             curr_pos = self.dps_conf(CONF_CURRENT_POSITION_DP)
-            if self._config[CONF_POSITION_INVERTED]:
-                self._current_cover_position = 100 - curr_pos
+            if self._config[CONF_POSITIONING_MODE] != COVER_MODE_OPENCLOSE:
+                if self._config[CONF_POSITION_INVERTED]:
+                   self._current_cover_position = 100 - curr_pos
+               else:
+                   self._current_cover_position = curr_pos
             else:
-                self._current_cover_position = curr_pos
+                if curr_pos == self._config[CONF_POSITION_INVERTED]:
+                    self._current_cover_position = 100
+                else:
+                    self._current_cover_position = 0
+
+                    
         if (
             self._config[CONF_POSITIONING_MODE] == COVER_MODE_TIMED
             and self._state != self._previous_state
