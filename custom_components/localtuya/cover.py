@@ -192,10 +192,10 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
     def status_updated(self):
         """Device status was updated."""
         self._previous_state = self._state
-        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE
-           self._state = self.dps(CONF_CURRENT_POSITION_DP)
-        else
-           self._state = self.dps(self._dp_id)
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE:
+            self._state = self.dps(CONF_CURRENT_POSITION_DP)
+        else:
+            self._state = self.dps(self._dp_id)
         if self._state.isupper():
             self._open_cmd = self._open_cmd.upper()
             self._close_cmd = self._close_cmd.upper()
