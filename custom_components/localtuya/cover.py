@@ -33,6 +33,7 @@ COVER_FZZZ_CMDS = "fz_zz_stop"
 COVER_12_CMDS = "1_2_3"
 COVER_MODE_NONE = "none"
 COVER_MODE_POSITION = "position"
+COVER_MODE_OPENCLOSE = "openclose"
 COVER_MODE_TIMED = "timed"
 COVER_TIMEOUT_TOLERANCE = 3.0
 
@@ -48,7 +49,7 @@ def flow_schema(dps):
             [COVER_ONOFF_CMDS, COVER_OPENCLOSE_CMDS, COVER_FZZZ_CMDS, COVER_12_CMDS]
         ),
         vol.Optional(CONF_POSITIONING_MODE, default=DEFAULT_POSITIONING_MODE): vol.In(
-            [COVER_MODE_NONE, COVER_MODE_POSITION, COVER_MODE_TIMED]
+            [COVER_MODE_NONE, COVER_MODE_POSITION, COVER_MODE_TIMED, COVER_MODE_OPENCLOSE]
         ),
         vol.Optional(CONF_CURRENT_POSITION_DP): vol.In(dps),
         vol.Optional(CONF_SET_POSITION_DP): vol.In(dps),
@@ -81,7 +82,7 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
     def supported_features(self):
         """Flag supported features."""
         supported_features = SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP
-        if self._config[CONF_POSITIONING_MODE] != COVER_MODE_NONE:
+        if self._config[CONF_POSITIONING_MODE] != COVER_MODE_NONE and self._config[CONF_POSITIONING_MODE] != COVER_MODE_OPENCLOSE:
             supported_features = supported_features | SUPPORT_SET_POSITION
         return supported_features
 
@@ -191,7 +192,10 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
     def status_updated(self):
         """Device status was updated."""
         self._previous_state = self._state
-        self._state = self.dps(self._dp_id)
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE
+           self._state = self.dps(CONF_CURRENT_POSITION_DP)
+        else
+           self._state = self.dps(self._dp_id)
         if self._state.isupper():
             self._open_cmd = self._open_cmd.upper()
             self._close_cmd = self._close_cmd.upper()
