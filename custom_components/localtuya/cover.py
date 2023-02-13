@@ -206,7 +206,7 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
             if self._config[CONF_POSITIONING_MODE] != COVER_MODE_OPENCLOSE:
                 if self._config[CONF_POSITION_INVERTED]:
                    self._current_cover_position = 100 - curr_pos
-               else:
+                else:
                    self._current_cover_position = curr_pos
             else:
                 if curr_pos == self._config[CONF_POSITION_INVERTED]:
