@@ -31,6 +31,7 @@ COVER_ONOFF_CMDS = "on_off_stop"
 COVER_OPENCLOSE_CMDS = "open_close_stop"
 COVER_FZZZ_CMDS = "fz_zz_stop"
 COVER_12_CMDS = "1_2_3"
+COVER_TOGGLE_CMDS = "True_True_True"
 COVER_MODE_NONE = "none"
 COVER_MODE_POSITION = "position"
 COVER_MODE_OPENCLOSE = "openclose"
@@ -46,7 +47,7 @@ def flow_schema(dps):
     """Return schema used in config flow."""
     return {
         vol.Optional(CONF_COMMANDS_SET): vol.In(
-            [COVER_ONOFF_CMDS, COVER_OPENCLOSE_CMDS, COVER_FZZZ_CMDS, COVER_12_CMDS]
+            [COVER_ONOFF_CMDS, COVER_OPENCLOSE_CMDS, COVER_FZZZ_CMDS, COVER_12_CMDS, COVER_TOGGLE_CMDS]
         ),
         vol.Optional(CONF_POSITIONING_MODE, default=DEFAULT_POSITIONING_MODE): vol.In(
             [COVER_MODE_NONE, COVER_MODE_POSITION, COVER_MODE_TIMED, COVER_MODE_OPENCLOSE]
@@ -72,8 +73,15 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
         self._open_cmd = commands_set.split("_")[0]
         self._close_cmd = commands_set.split("_")[1]
         self._stop_cmd = commands_set.split("_")[2]
+        if self._open_cmd == "True":
+            self._open_cmd = True
+            self._close_cmd = True
+            self._stop_cmd = True
+            self._state = False
+        else:
+            self._state = self._stop_cmd
         self._timer_start = time.time()
-        self._state = self._stop_cmd
+        
         self._previous_state = self._state
         self._current_cover_position = 0
         _LOGGER.debug("Initialized cover [%s]", self.name)
@@ -81,9 +89,13 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        supported_features = SUPPORT_OPEN | SUPPORT_CLOSE | SUPPORT_STOP
-        if self._config[CONF_POSITIONING_MODE] != COVER_MODE_NONE and self._config[CONF_POSITIONING_MODE] != COVER_MODE_OPENCLOSE:
+        supported_features = SUPPORT_OPEN | SUPPORT_CLOSE
+        if self._config[CONF_POSITIONING_MODE] != COVER_MODE_OPENCLOSE:
+            upported_features = supported_features | SUPPORT_STOP;
+        
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_POSITION or self._config[CONF_POSITIONING_MODE] == COVER_MODE_TIMED:
             supported_features = supported_features | SUPPORT_SET_POSITION
+            
         return supported_features
 
     @property
@@ -91,17 +103,27 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
         """Return current cover position in percent."""
         if self._config[CONF_POSITIONING_MODE] == COVER_MODE_NONE:
             return None
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE:
+            return None;
+            
         return self._current_cover_position
 
     @property
     def is_opening(self):
         """Return if cover is opening."""
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE:
+            return False;
+            
         state = self._state
         return state == self._open_cmd
 
     @property
     def is_closing(self):
         """Return if cover is closing."""
+        
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE:
+            return False;
+        
         state = self._state
         return state == self._close_cmd
 
@@ -110,11 +132,16 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
         """Return if the cover is closed or not."""
         if self._config[CONF_POSITIONING_MODE] == COVER_MODE_NONE:
             return False
-
-        if self._current_cover_position == 0:
-            return True
-        if self._current_cover_position == 100:
-            return False
+            
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_POSITION or self._config[CONF_POSITIONING_MODE] == COVER_MODE_TIMED:
+            if self._current_cover_position == 0:
+                return True
+            if self._current_cover_position == 100:
+                return False
+              
+        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE:
+            return self._last_state
+       
         return False
 
     async def async_set_cover_position(self, **kwargs):
@@ -192,9 +219,7 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
     def status_updated(self):
         """Device status was updated."""
         self._previous_state = self._state
-        if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE:
-            self._state = self.dps(CONF_CURRENT_POSITION_DP)
-        else:
+        if self._config[CONF_POSITIONING_MODE] != COVER_MODE_OPENCLOSE:
             self._state = self.dps(self._dp_id)
             try:
                 if self._state.isupper():
@@ -203,18 +228,20 @@ class LocaltuyaCover(LocalTuyaEntity, CoverEntity):
                     self._stop_cmd = self._stop_cmd.upper()
             except:
                 pass
+                
         if self.has_config(CONF_CURRENT_POSITION_DP):
-            curr_pos = self.dps_conf(CONF_CURRENT_POSITION_DP)
-            if self._config[CONF_POSITIONING_MODE] != COVER_MODE_OPENCLOSE:
+            if self._config[CONF_POSITIONING_MODE] == COVER_MODE_OPENCLOSE:
+                self._state = self.dps_conf(CONF_CURRENT_POSITION_DP)
+                if self._config[CONF_POSITION_INVERTED]:
+                    self._state = not self._state
+                
+            if self._config[CONF_POSITIONING_MODE] == COVER_MODE_POSITION:
+
+                curr_pos = self.dps_conf(CONF_CURRENT_POSITION_DP)
                 if self._config[CONF_POSITION_INVERTED]:
                     self._current_cover_position = 100 - curr_pos
                 else:
-                    self._current_cover_position = curr_pos
-            else:
-                if curr_pos == self._config[CONF_POSITION_INVERTED]:
-                    self._current_cover_position = 100
-                else:
-                    self._current_cover_position = 0
+                    self._current_cover_position = curr_pos 
 
                     
         if (
